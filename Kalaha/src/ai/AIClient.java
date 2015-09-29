@@ -13,7 +13,7 @@ import kalaha.*;
  * 
  * @author Johan Hagelbäck
  */
-//siva reddy
+//siva reddy now venky
 
 public class AIClient implements Runnable
 {
