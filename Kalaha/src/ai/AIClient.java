@@ -13,6 +13,8 @@ import kalaha.*;
  * 
  * @author Johan Hagelbäck
  */
+//siva reddy
+
 public class AIClient implements Runnable
 {
     private int player;
