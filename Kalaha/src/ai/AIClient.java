@@ -13,8 +13,6 @@ import kalaha.*;
  * 
  * @author Johan Hagelbäck
  */
-//siva reddy now venky
-
 public class AIClient implements Runnable
 {
     private int player;
@@ -26,7 +24,8 @@ public class AIClient implements Runnable
     private Socket socket;
     private boolean running;
     private boolean connected;
-    	
+    long start_time,startT;
+    int utility, move=0, depthLimit=0;
     /**
      * Creates a new client.
      */
@@ -162,11 +161,12 @@ public class AIClient implements Runnable
                         boolean validMove = false;
                         while (!validMove)
                         {
-                            long startT = System.currentTimeMillis();
+                            startT = System.currentTimeMillis();
                             //This is the call to the function for making a move.
                             //You only need to change the contents in the getMove()
                             //function.
                             GameState currentBoard = new GameState(currentBoardStr);
+                           start_time=System.currentTimeMillis();
                             int cMove = getMove(currentBoard);
                             
                             //Timer stuff
@@ -214,16 +214,112 @@ public class AIClient implements Runnable
      */
     public int getMove(GameState currentBoard)
     {
-        int myMove = getRandom();
+      //  Iterative deepening implemented here
+        depthLimit=0;
+        while(System.currentTimeMillis()-startT<=5000)
+        {
+            int u=minMax(depthLimit,currentBoard,true,-999,+999);//2 is the depthLimit
+            depthLimit++; //System.out.println(depthLimit);
+        }
+        int myMove=move;
+      //  System.out.println("utility of root="+getUtility(currentBoard));
+      //  System.out.println("ambo1="+currentBoard.getSeeds(1, 2));
         return myMove;
     }
     
-    /**
-     * Returns a random ambo number (1-6) used when making
-     * a random move.
-     * 
-     * @return Random ambo number
-     */
+    
+       // implements minimax algorithm with alpha-beta pruning
+    public int minMax(int depth, GameState local2currentBoard,boolean max,int alpha, int beta)
+    {
+        int d=depth;
+        int play=local2currentBoard.getNextPlayer();
+        
+        // base condition checks if this node is leaf or not
+        if(d<=0||local2currentBoard.gameEnded()||(System.currentTimeMillis()-startT)>4000)
+        {
+            utility=getUtility(local2currentBoard);
+            return utility;
+        }
+        if(max==true)
+        {
+           // expand to child nodes
+            for(int i=1; i<7; i++)
+            {   
+                GameState b=local2currentBoard.clone(); //create a new copy of board for each child
+                //checks whether move is valid or not
+                if(b.moveIsPossible(i))
+                    b.makeMove(i);
+                else
+                    continue;
+                int value;
+                // checks for another chance on the same turn
+                if(b.getNextPlayer()==play)
+                    value=minMax(d,b,true,alpha,beta);
+                else
+                    value=minMax(d-1,b,false,alpha,beta);
+                if(value>alpha)
+                {   
+                    alpha=value;move=i;
+                }
+                if(alpha>=beta)
+                    break;
+            }
+            return alpha;
+        }
+        else
+        {
+           
+            for(int i=1; i<7; i++)
+            {
+            
+               GameState  c=local2currentBoard.clone();
+                 int value;
+                 if(c.moveIsPossible(i))
+                    c.makeMove(i);
+                 else
+                    continue;
+                if(c.getNextPlayer()==play)
+                    value=minMax(d,c,false,alpha,beta);
+                else
+                    value=minMax(d-1,c,true,alpha,beta);
+                if(value<beta)
+                {
+                    beta=value;
+                }
+                if(alpha>=beta)
+                    break;
+    
+            }
+            return beta;
+        }
+    
+    }
+    
+    public int getUtility(GameState local4currentBoard)
+    {
+        int seeds_south=0,seeds_north=0;
+        int totals=local4currentBoard.getScore(1); 
+        int totaln=local4currentBoard.getScore(2);
+        for(int i=1;i<7;i++)
+        {
+            seeds_south+=local4currentBoard.getSeeds(i, 1);
+            seeds_north+=local4currentBoard.getSeeds(i, 2);
+          //  System.out.println("ambo"+i+"="+local4currentBoard.getScore(1));
+        }
+        int south=totals-seeds_south;
+        int north= totaln-seeds_north;
+        
+      // System.out.println(local4currentBoard.toString());
+        
+        if(local4currentBoard.getNextPlayer()==1)
+            utility=south-north;
+        else
+            utility=north-south;
+      //  System.out.println("ambo1="+local4currentBoard.getSeeds(1,1));
+      //  System.out.println("north="+north+"south="+south);
+        return utility;
+    }
+    
     public int getRandom()
     {
         return 1 + (int)(Math.random() * 6);
